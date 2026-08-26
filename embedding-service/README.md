@@ -10,7 +10,6 @@ cd embedding-service
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-#$env:KMP_DUPLICATE_LIB_OK="TRUE"; uvicorn main:app --reload --port 8000
 uvicorn main:app --reload --port 8000
 ```
 

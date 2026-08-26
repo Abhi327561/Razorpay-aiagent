@@ -3,9 +3,10 @@ import { createPaymentLink } from "./payment.js";
 import { callGroq } from "./llmClient.js";
 import Product from "../models/Product.js";
 
-// The agent has tools it can call mid-conversation. This is what makes it
+// The agent has three tools it can call mid-conversation. This is what makes it
 // "agentic" rather than a plain RAG chatbot: it decides which tool to use and when,
-// including when to compare products, offer discounts, or push for the close.
+// including when to stop answering questions and push for the close.
+// Groq uses OpenAI-style tool definitions: { type: "function", function: {...} }.
 const TOOLS = [
   {
     type: "function",
@@ -38,22 +39,6 @@ const TOOLS = [
   {
     type: "function",
     function: {
-      name: "apply_discount",
-      description:
-        "Apply a promotional discount code (e.g. WELCOME10 for 10% off, FESTIVE15 for 15% off, AGENT20 for 20% off) to a product to incentive the buyer.",
-      parameters: {
-        type: "object",
-        properties: {
-          productId: { type: "string" },
-          code: { type: "string" },
-        },
-        required: ["productId"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
       name: "create_payment_link",
       description:
         "Generate a real Razorpay payment link for a specific product. Only call this once the customer has clearly confirmed which exact product they want to buy.",
@@ -62,8 +47,6 @@ const TOOLS = [
         properties: {
           productId: { type: "string" },
           customerName: { type: "string" },
-          discountPercent: { type: "number" },
-          discountCode: { type: "string" },
         },
         required: ["productId"],
       },
@@ -71,20 +54,23 @@ const TOOLS = [
   },
 ];
 
-const SYSTEM_PROMPT = `You are an expert AI sales agent for a D2C store. Your goal is to:
-1. Understand customer intent (text or photo upload).
-2. Recommend items from the catalog using search_catalog (never hallucinate products).
-3. Help customers evaluate options using compare_products if they are undecided between items.
-4. Offer discounts using apply_discount if the user hesitates, asks for a deal/coupon, or price is an issue (e.g. WELCOME10 for 10% off, FESTIVE15 for 15% off).
-5. Once the customer clearly confirms they want to purchase, close the sale by calling create_payment_link (passing any applicable discount).
+const SYSTEM_PROMPT = `You are a sales agent for a D2C apparel store. Your job is to
+understand what the customer wants, recommend well-matched products from the catalog
+using search_catalog, answer questions honestly, and — once the customer signals
+they're ready to buy a specific item — close the sale by calling create_payment_link.
 
-Be concise, warm, helpful, and closing-oriented. Keep text responses to 2-3 short sentences max.`;
+Be concise and conversational, not pushy. Always search the catalog before recommending
+anything; never invent products. If the customer sends a photo, describe what you see
+in it, then call search_catalog with a text query capturing the key visual traits
+(color, garment type, style) to find similar items. Only call create_payment_link when
+the customer has clearly confirmed the specific product they want. Keep replies to 2-3
+sentences.`;
 
 // Maps the frontend's simple message history into OpenAI-style messages.
-// Keeps only the most recent 6 messages to stay safely below Groq token-per-minute (TPM) limits.
+// Product cards and payment links from earlier turns aren't replayed — only the
+// text — since the model doesn't need its own past tool outputs to keep chatting.
 function toGroqHistory(conversationHistory) {
-  return (conversationHistory || [])
-    .slice(-6)
+  return conversationHistory
     .filter((m) => m.text)
     .map((m) => ({
       role: m.role === "user" ? "user" : "assistant",
@@ -117,44 +103,9 @@ async function executeTool(name, args) {
       if (!a || !b) return { forModel: { error: "One or both products not found" } };
       return {
         forModel: {
-          [a.name]: { id: a._id.toString(), price: a.price, category: a.category, description: a.description },
-          [b.name]: { id: b._id.toString(), price: b.price, category: b.category, description: b.description },
+          [a.name]: { price: a.price, category: a.category, description: a.description },
+          [b.name]: { price: b.price, category: b.category, description: b.description },
         },
-        comparison: {
-          productA: a.toObject(),
-          productB: b.toObject(),
-        },
-      };
-    }
-
-    case "apply_discount": {
-      const product = await Product.findById(args.productId);
-      if (!product) return { forModel: { error: "Product not found" } };
-      
-      const code = (args.code || "WELCOME10").toUpperCase();
-      let percent = 10;
-      if (code.includes("15")) percent = 15;
-      if (code.includes("20")) percent = 20;
-
-      const discountedPrice = Math.max(100, Math.round(product.price * (1 - percent / 100)));
-
-      return {
-        forModel: {
-          product: product.name,
-          code,
-          discountPercent: percent,
-          originalPrice: product.price,
-          discountedPrice,
-          message: `Applied ${percent}% discount with code ${code}. New price: ₹${(discountedPrice/100).toFixed(2)}`
-        },
-        discount: {
-          productId: product._id.toString(),
-          productName: product.name,
-          code,
-          percent,
-          originalPrice: product.price,
-          discountedPrice,
-        }
       };
     }
 
@@ -174,12 +125,10 @@ export async function runAgentTurn({ message, imageBase64, conversationHistory }
   const messages = [{ role: "system", content: SYSTEM_PROMPT }, ...toGroqHistory(conversationHistory)];
 
   let collectedProducts = [];
-  let comparisonData = null;
-  let discountData = null;
-  let paymentLink = null;
-  let finalText = "";
 
   if (imageBase64) {
+    // qwen3.6-27b sees the image directly and is expected (per system prompt) to
+    // describe it and call search_catalog itself with a matching text query.
     messages.push({
       role: "user",
       content: [
@@ -191,6 +140,9 @@ export async function runAgentTurn({ message, imageBase64, conversationHistory }
     messages.push({ role: "user", content: message });
   }
 
+  let paymentLink = null;
+  let finalText = "";
+
   for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
     const response = await callGroq({ messages, tools: TOOLS });
     const choice = response.choices[0];
@@ -199,19 +151,18 @@ export async function runAgentTurn({ message, imageBase64, conversationHistory }
     if (msg.content) finalText = msg.content;
 
     if (!msg.tool_calls || msg.tool_calls.length === 0) {
-      break;
+      break; // model has given its final answer, no more tools requested
     }
 
+    // Echo the assistant's tool-call message back before sending results —
+    // OpenAI-compatible APIs require the full turn history, not just the outcome.
     messages.push(msg);
 
     for (const call of msg.tool_calls) {
       const args = JSON.parse(call.function.arguments || "{}");
-      const { forModel, products, comparison, discount, paymentLink: link } = await executeTool(call.function.name, args);
+      const { forModel, products, paymentLink: link } = await executeTool(call.function.name, args);
       if (products) collectedProducts = products;
-      if (comparison) comparisonData = comparison;
-      if (discount) discountData = discount;
       if (link) paymentLink = link;
-
       messages.push({
         role: "tool",
         tool_call_id: call.id,
@@ -221,10 +172,8 @@ export async function runAgentTurn({ message, imageBase64, conversationHistory }
   }
 
   return {
-    reply: finalText || "Here are the details from our store catalog.",
+    reply: finalText || "Sorry, I couldn't come up with a response — try rephrasing?",
     products: collectedProducts,
-    comparison: comparisonData,
-    discount: discountData,
     paymentLink,
   };
 }

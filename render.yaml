@@ -1,0 +1,51 @@
+# Render Infrastructure Blueprint for Razorpay AI Sales Agent
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # 1. Python FastAPI CLIP Embedding Microservice
+  - type: web
+    name: razorpay-agent-embedding-service
+    env: python
+    rootDir: embedding-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    healthCheckPath: /health
+
+  # 2. Node.js Express Backend API
+  - type: web
+    name: razorpay-agent-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: EMBEDDING_SERVICE_URL
+        fromService:
+          type: web
+          name: razorpay-agent-embedding-service
+          property: url
+
+  # 3. React Frontend UI
+  - type: web
+    name: razorpay-agent-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: build
+    envVars:
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: razorpay-agent-backend
+          property: url

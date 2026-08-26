@@ -62,15 +62,19 @@ npm start
 
 ## Status
 
-- [x] MERN scaffold, Razorpay Payment Links integration, dark cyber-terminal UI
-- [x] CLIP embedding microservice (`openai/clip-vit-base-patch32` text + image, shared vector space)
+- [x] MERN scaffold, Razorpay Payment Links integration, terminal-style chat UI
+- [x] CLIP embedding microservice (text + image, shared vector space)
 - [x] 30-product seed catalog with embeddings
-- [x] Real agent tool-use loop on **Groq** (`qwen/qwen3.6-27b` — vision + tool calling in one model). Model sees uploaded photos directly and calls `search_catalog`, `compare_products`, `apply_discount`, and `create_payment_link`
-- [x] Text search confirmed working end to end (real catalog matches render as receipt cards with quick action buttons)
-- [x] Image search confirmed working end to end (vision + base64 CLIP matching)
-- [x] Payment close confirmed working — agent calls `create_payment_link` on confirmation with custom discounts, stamped ticket UI renders real Razorpay link + test payment simulator
-- [x] Merchant growth dashboard — conversations, conversion rate, revenue, average order value, conversion funnel visualizer, top categories, and live logs (`GET /api/analytics`)
-- [x] `compare_products` tool confirmed working — returns structured side-by-side product matrix cards in chat UI
-- [x] `apply_discount` tool confirmed working — offers coupon codes (`WELCOME10`, `FESTIVE15`, `AGENT20`) during negotiations
-- [x] Web Speech API voice input + Web Audio micro-feedback sound effects
-- [x] Store Catalog & Embeddings visual browser modal
+- [x] Real agent tool-use loop on **Groq** (`qwen/qwen3.6-27b` — vision + tool
+      calling in one model, free tier). Model sees uploaded photos directly and
+      calls `search_catalog` itself, alongside `compare_products` and
+      `create_payment_link`
+- [x] Text search confirmed working end to end (real catalog matches render as
+      receipt cards)
+- [x] Image search confirmed working end to end
+- [x] Payment close confirmed working — agent calls create_payment_link on
+      confirmation, stamped ticket UI renders a real Razorpay test-mode link
+- [x] Merchant growth dashboard — conversations, conversion rate, revenue, top
+      searched categories, recent activity log (`GET /api/analytics`)
+- [ ] compare_products tool not yet tested (agent has it available, unconfirmed
+      it gets called correctly)

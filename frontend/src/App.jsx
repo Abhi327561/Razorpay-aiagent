@@ -1,159 +1,102 @@
 import React, { useState } from "react";
 import Chat from "./components/Chat";
 import Dashboard from "./components/Dashboard";
-import CatalogModal from "./components/CatalogModal";
 
 export default function App() {
   const [tab, setTab] = useState("chat");
-  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
-  const [prefillPrompt, setPrefillPrompt] = useState("");
-
-  const handleSelectCatalogProduct = (product) => {
-    setPrefillPrompt(`Tell me more about "${product.name}" and offer a deal if possible.`);
-    setTab("chat");
-  };
 
   return (
-    <div style={{
-      height: "100vh",
-      width: "100vw",
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-    }}>
-      {/* ── Top Navigation Bar ── */}
-      <header style={{
+    <div
+      style={{
+        minHeight: "100vh",
         display: "flex",
         alignItems: "center",
-        gap: 0,
-        padding: "0 24px",
-        height: 56,
-        background: "var(--panel-solid)",
-        borderBottom: "1px solid var(--line)",
-        flexShrink: 0,
-        zIndex: 10,
-      }}>
-        {/* Brand */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginRight: 32 }}>
-          <span style={{
-            width: 9, height: 9, borderRadius: "50%",
-            background: "var(--phosphor)",
-            animation: "pulse-dot 2s ease-in-out infinite",
-            flexShrink: 0,
-          }} />
-          <span style={{
+        justifyContent: "center",
+        padding: "32px 16px",
+      }}
+    >
+      <div style={{ width: "100%", maxWidth: 620 }}>
+        {/* Terminal title bar */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "10px 16px",
+            background: "var(--panel-solid)",
+            border: "1px solid var(--line)",
+            borderBottom: "none",
+            borderRadius: "10px 10px 0 0",
             fontFamily: "var(--font-mono)",
-            fontSize: 13,
-            fontWeight: 700,
-            letterSpacing: "0.1em",
-            color: "var(--phosphor)",
-          }}>
-            POS://SALES-AGENT
-          </span>
-          <span style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            letterSpacing: "0.06em",
+            fontSize: 12,
+            letterSpacing: "0.05em",
             color: "var(--paper-dim)",
-            background: "var(--line)",
-            padding: "2px 8px",
-            borderRadius: 4,
-          }}>
-            TERMINAL ONLINE
+          }}
+        >
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "var(--phosphor)",
+              boxShadow: "0 0 8px var(--phosphor)",
+              display: "inline-block",
+              flexShrink: 0,
+            }}
+          />
+          POS://sales-agent — TERMINAL ONLINE
+          <span style={{ marginLeft: "auto", color: "var(--paper-dim)" }}>
+            v0.1 · TEST MODE
           </span>
         </div>
 
-        {/* Tab Switcher */}
-        <nav style={{ display: "flex", gap: 4 }}>
+        {/* Tab switcher */}
+        <div
+          style={{
+            display: "flex",
+            background: "var(--panel-solid)",
+            border: "1px solid var(--line)",
+            borderBottom: "none",
+          }}
+        >
           {[
-            { id: "chat",      label: "💬  Customer Chat" },
-            { id: "dashboard", label: "📊  Growth Report"  },
+            { id: "chat", label: "CUSTOMER CHAT" },
+            { id: "dashboard", label: "GROWTH REPORT" },
           ].map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               style={{
-                background: tab === t.id ? "var(--phosphor-glow)" : "transparent",
+                flex: 1,
+                background: "transparent",
                 border: "none",
-                borderBottom: tab === t.id
-                  ? "2px solid var(--phosphor)"
-                  : "2px solid transparent",
+                borderBottom: tab === t.id ? "2px solid var(--phosphor)" : "2px solid transparent",
                 color: tab === t.id ? "var(--phosphor)" : "var(--paper-dim)",
-                fontFamily: "var(--font-sans)",
-                fontSize: 13,
-                fontWeight: 500,
-                letterSpacing: "0.02em",
-                padding: "0 18px",
-                height: 56,
-                transition: "all 0.2s ease",
-                cursor: "pointer",
+                fontSize: 11,
+                letterSpacing: "0.06em",
+                padding: "10px 0",
               }}
             >
               {t.label}
             </button>
           ))}
-          <button
-            onClick={() => setIsCatalogOpen(true)}
-            style={{
-              background: "transparent",
-              border: "none",
-              borderBottom: "2px solid transparent",
-              color: "var(--paper-mid)",
-              fontFamily: "var(--font-sans)",
-              fontSize: 13,
-              fontWeight: 500,
-              letterSpacing: "0.02em",
-              padding: "0 18px",
-              height: 56,
-              transition: "all 0.2s ease",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--phosphor)")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--paper-mid)")}
-          >
-            📦 Catalog Browser
-          </button>
-        </nav>
-
-        {/* Right metadata */}
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16 }}>
-          <span style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            letterSpacing: "0.06em",
-            color: "var(--paper-dim)",
-          }}>
-            v0.2 · RAZORPAY AI BUILDER
-          </span>
-          <span style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            letterSpacing: "0.06em",
-            color: "var(--amber)",
-            background: "var(--amber-dim)",
-            border: "1px solid rgba(255,180,84,0.25)",
-            padding: "3px 10px",
-            borderRadius: 4,
-          }}>
-            TEST MODE
-          </span>
         </div>
-      </header>
 
-      {/* ── Main Content ── */}
-      <main style={{
-        flex: 1,
-        overflow: "hidden",
-        display: "flex",
-      }}>
-        {tab === "chat" ? <Chat externalPrompt={prefillPrompt} clearExternalPrompt={() => setPrefillPrompt("")} /> : <Dashboard />}
-      </main>
+        {tab === "chat" ? <Chat /> : <Dashboard />}
 
-      <CatalogModal
-        isOpen={isCatalogOpen}
-        onClose={() => setIsCatalogOpen(false)}
-        onSelectProduct={handleSelectCatalogProduct}
-      />
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            color: "var(--paper-dim)",
+            textAlign: "center",
+            marginTop: 12,
+            letterSpacing: "0.04em",
+          }}
+        >
+          RAZORPAY AI BUILDER · TRACK 1 — AGENTIC COMMERCE DEMO
+        </p>
+      </div>
     </div>
   );
 }

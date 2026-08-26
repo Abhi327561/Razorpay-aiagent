@@ -106,24 +106,60 @@ export default function CatalogModal({ isOpen, onClose, onSelectProduct }) {
               {products.length} products stored with 512-dim CLIP vectors
             </p>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "var(--line)",
-              border: "none",
-              color: "var(--paper-mid)",
-              fontSize: 18,
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            ×
-          </button>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              onClick={() => {
+                setLoading(true);
+                fetch(`${API_URL}/api/products/seed`, { method: "POST" })
+                  .then((res) => res.json())
+                  .then((d) => {
+                    alert(d.message || "Seeding complete!");
+                    return fetch(`${API_URL}/api/products`);
+                  })
+                  .then((res) => res.json())
+                  .then((data) => {
+                    setProducts(Array.isArray(data) ? data : []);
+                    setLoading(false);
+                  })
+                  .catch((err) => {
+                    alert("Seeding error: " + err.message);
+                    setLoading(false);
+                  });
+              }}
+              style={{
+                background: "var(--phosphor-glow)",
+                border: "1px solid var(--phosphor-dim)",
+                color: "var(--phosphor)",
+                borderRadius: 6,
+                fontSize: 11,
+                fontFamily: "var(--font-mono)",
+                padding: "6px 12px",
+                cursor: "pointer",
+              }}
+            >
+              🌱 Seed / Re-index Catalog
+            </button>
+
+            <button
+              onClick={onClose}
+              style={{
+                background: "var(--line)",
+                border: "none",
+                color: "var(--paper-mid)",
+                fontSize: 18,
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              ×
+            </button>
+          </div>
         </div>
 
         {/* Filter bar */}

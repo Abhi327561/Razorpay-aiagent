@@ -22,35 +22,18 @@ function getClient() {
 
 // Creates a real Razorpay Payment Link (test mode) for a given product.
 // Docs: https://razorpay.com/docs/api/payment-links/
-export async function createPaymentLink({ productId, customerName, discountPercent = 0, discountCode = "" }) {
+export async function createPaymentLink({ productId, customerName }) {
   const product = await Product.findById(productId);
   if (!product) throw new Error("Product not found");
 
-  let finalPrice = product.price;
-  if (discountPercent > 0) {
-    finalPrice = Math.max(100, Math.round(product.price * (1 - discountPercent / 100)));
-  }
-
-  const description = discountCode 
-    ? `${product.name} (${discountPercent}% OFF with ${discountCode})`
-    : product.name;
-
   const link = await getClient().paymentLink.create({
-    amount: finalPrice, // paise
+    amount: product.price, // paise
     currency: "INR",
-    description,
+    description: product.name,
     customer: customerName ? { name: customerName } : undefined,
     notify: { sms: false, email: false },
     reminder_enable: false,
   });
 
-  return { 
-    url: link.short_url, 
-    id: link.id, 
-    product: product.name, 
-    amount: finalPrice,
-    originalAmount: product.price,
-    discountCode: discountCode || null,
-    discountPercent: discountPercent || 0
-  };
+  return { url: link.short_url, id: link.id, product: product.name, amount: product.price };
 }
