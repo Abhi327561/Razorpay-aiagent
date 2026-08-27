@@ -34,7 +34,7 @@ services:
         fromService:
           type: web
           name: razorpay-agent-embedding-service
-          property: url
+          property: host
 
   # 3. React Frontend UI
   - type: web
@@ -48,4 +48,4 @@ services:
         fromService:
           type: web
           name: razorpay-agent-backend
-          property: url
+          property: host

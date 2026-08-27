@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+let rawApiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
+if (rawApiUrl && !rawApiUrl.startsWith("http://") && !rawApiUrl.startsWith("https://")) {
+  rawApiUrl = `https://${rawApiUrl}`;
+}
+const API_URL = rawApiUrl;
 
 function formatRupees(paise) {
   return `Rs.${(paise / 100).toFixed(2)}`;

@@ -6,7 +6,11 @@ import Product from "../models/Product.js";
 // from the GenAI bootcamp). See /embedding-service (to be added Day 2) — it should
 // expose POST /embed/text and POST /embed/image, each returning a float vector.
 
-const SERVICE_URL = process.env.EMBEDDING_SERVICE_URL || "http://localhost:8000";
+let rawServiceUrl = process.env.EMBEDDING_SERVICE_URL || "http://localhost:8000";
+if (rawServiceUrl && !rawServiceUrl.startsWith("http://") && !rawServiceUrl.startsWith("https://")) {
+  rawServiceUrl = `http://${rawServiceUrl}`;
+}
+const SERVICE_URL = rawServiceUrl;
 
 export async function embedText(text) {
   const res = await fetch(`${SERVICE_URL}/embed/text`, {
