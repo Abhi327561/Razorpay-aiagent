@@ -13,51 +13,78 @@ if (rawServiceUrl && !rawServiceUrl.startsWith("http://") && !rawServiceUrl.star
 const SERVICE_URL = rawServiceUrl;
 
 export async function embedText(text) {
-  const res = await fetch(`${SERVICE_URL}/embed/text`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
-  if (!res.ok) throw new Error(`Embedding service error: ${res.status}`);
-  const data = await res.json();
-  return data.embedding;
+  try {
+    const res = await fetch(`${SERVICE_URL}/embed/text`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error(`Embedding service error: ${res.status}`);
+    const data = await res.json();
+    return data.embedding;
+  } catch (err) {
+    console.warn(`[Embedding Service Warning] ${err.message}. Falling back to text search.`);
+    return null;
+  }
 }
 
 export async function embedImage(imageBase64) {
-  const res = await fetch(`${SERVICE_URL}/embed/image`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image: imageBase64 }),
-  });
-  if (!res.ok) throw new Error(`Embedding service error: ${res.status}`);
-  const data = await res.json();
-  return data.embedding;
+  try {
+    const res = await fetch(`${SERVICE_URL}/embed/image`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: imageBase64 }),
+    });
+    if (!res.ok) throw new Error(`Embedding service error: ${res.status}`);
+    const data = await res.json();
+    return data.embedding;
+  } catch (err) {
+    console.warn(`[Embedding Service Warning] ${err.message}. Image embedding unavailable.`);
+    return null;
+  }
 }
 
 // Combine product name+description into one embedding at ingest time.
-// TODO (Day 2): also embed imageUrl and average/concat with text embedding
-// for true multimodal matching.
 export async function embedProduct({ name, description }) {
-  return embedText(`${name}. ${description}`);
+  const emb = await embedText(`${name}. ${description}`);
+  return emb || [];
 }
 
 function cosineSimilarity(a, b) {
+  if (!a || !b || a.length === 0 || b.length === 0) return 0;
   let dot = 0, normA = 0, normB = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
     normA += a[i] * a[i];
     normB += b[i] * b[i];
   }
+  if (normA === 0 || normB === 0) return 0;
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
 // Given a query embedding (from text or image), return the top-N closest products.
-// In-memory search — fine at catalog sizes of a few hundred; revisit if this grows.
-export async function searchCatalog(queryEmbedding, topN = 5) {
+// Falls back to string keyword matching if queryEmbedding is null or unavailable.
+export async function searchCatalog(queryEmbedding, topN = 5, queryText = "") {
   const products = await Product.find();
+
+  if (queryEmbedding && Array.isArray(queryEmbedding) && queryEmbedding.length > 0) {
+    return products
+      .map((p) => ({ product: p, score: cosineSimilarity(queryEmbedding, p.embedding) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, topN)
+      .map(({ product, score }) => ({ ...product.toObject(), similarity: score }));
+  }
+
+  // Fallback: Keyword search across product fields
+  const tokens = (queryText || "").toLowerCase().split(/\s+/).filter(Boolean);
   return products
-    .map((p) => ({ product: p, score: cosineSimilarity(queryEmbedding, p.embedding) }))
+    .map((p) => {
+      const text = `${p.name} ${p.description} ${p.category}`.toLowerCase();
+      const matchCount = tokens.reduce((count, token) => count + (text.includes(token) ? 1 : 0), 0);
+      return { product: p, score: tokens.length ? matchCount / tokens.length : 0 };
+    })
     .sort((a, b) => b.score - a.score)
     .slice(0, topN)
-    .map(({ product, score }) => ({ ...product.toObject(), similarity: score }));
+    .map(({ product, score }) => ({ ...product.toObject(), similarity: score || 0.5 }));
 }
+

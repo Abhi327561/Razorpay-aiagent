@@ -82,7 +82,7 @@ async function executeTool(name, args) {
   switch (name) {
     case "search_catalog": {
       const embedding = await embedText(args.query);
-      const matches = await searchCatalog(embedding, 5);
+      const matches = await searchCatalog(embedding, 5, args.query);
       return {
         forModel: matches.map((p) => ({
           id: p._id.toString(),

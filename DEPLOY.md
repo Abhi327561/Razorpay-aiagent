@@ -57,7 +57,7 @@ You can deploy the embedding microservice to **Hugging Face Spaces** (Free Docke
 1. On [Render](https://dashboard.render.com), click **New +** → **Web Service**.
 2. Set Root Directory to `embedding-service`.
 3. Set Environment to `Python 3`.
-4. Build Command: `pip install -r requirements.txt`
+4. Build Command: `pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt`
 5. Start Command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 
 ---
