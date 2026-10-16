@@ -1,128 +1,64 @@
 import React, { useState } from "react";
+import Shop, { BuyModal } from "./components/Shop";
 import Chat from "./components/Chat";
 import Dashboard from "./components/Dashboard";
-import CatalogModal from "./components/CatalogModal";
+
+const TABS = [
+  { id: "shop", label: "Shop" },
+  { id: "chat", label: "AI Assistant" },
+  { id: "growth", label: "Growth" },
+];
 
 export default function App() {
-  const [tab, setTab] = useState("chat");
-  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+  const [view, setView] = useState("shop");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [buying, setBuying] = useState(null);
+
+  function askAI(product) {
+    setSelectedProduct(product || null);
+    setView("chat");
+  }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "32px 16px",
-      }}
-    >
-      <CatalogModal 
-        isOpen={isCatalogOpen} 
-        onClose={() => setIsCatalogOpen(false)} 
-        onSelectProduct={(product) => {
-          setSelectedProduct(product);
-          setTab("chat");
-        }} 
-      />
-      <div style={{ width: "100%", maxWidth: 620 }}>
-        {/* Terminal title bar */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "10px 16px",
-            background: "var(--panel-solid)",
-            border: "1px solid var(--line)",
-            borderBottom: "none",
-            borderRadius: "10px 10px 0 0",
-            fontFamily: "var(--font-mono)",
-            fontSize: 12,
-            letterSpacing: "0.05em",
-            color: "var(--paper-dim)",
-          }}
-        >
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "var(--phosphor)",
-              boxShadow: "0 0 8px var(--phosphor)",
-              display: "inline-block",
-              flexShrink: 0,
-            }}
-          />
-          POS://sales-agent
-          <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
-            <button
-              onClick={() => setIsCatalogOpen(true)}
-              style={{
-                background: "var(--phosphor-glow)",
-                border: "1px solid var(--phosphor-dim)",
-                color: "var(--phosphor)",
-                borderRadius: 4,
-                padding: "2px 8px",
-                fontSize: 10,
-                cursor: "pointer",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              📦 VIEW CATALOG
-            </button>
-            <span style={{ color: "var(--paper-dim)" }}>v0.1 · TEST</span>
-          </span>
-        </div>
+    <div style={{ minHeight: "100vh", height: "100vh", display: "flex", flexDirection: "column" }}>
+      {buying && <BuyModal product={buying} onClose={() => setBuying(null)} />}
 
-        {/* Tab switcher */}
-        <div
-          style={{
-            display: "flex",
-            background: "var(--panel-solid)",
-            border: "1px solid var(--line)",
-            borderBottom: "none",
-          }}
-        >
-          {[
-            { id: "chat", label: "CUSTOMER CHAT" },
-            { id: "dashboard", label: "GROWTH REPORT" },
-          ].map((t) => (
+      {/* Header */}
+      <header style={{ background: "var(--surface)", borderBottom: "1px solid var(--line)", padding: "0 clamp(16px, 4vw, 48px)", display: "flex", alignItems: "center", gap: 20, height: 64, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #0f2a5c, #3b82f6)", color: "#fff", fontWeight: 800, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>T</div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 17, lineHeight: 1.1 }}>ThreadKart</div>
+            <div style={{ fontSize: 11, color: "var(--ink3)", fontWeight: 600 }}>AI-POWERED APPAREL STORE</div>
+          </div>
+        </div>
+        <nav style={{ display: "flex", gap: 4, marginLeft: 8 }}>
+          {TABS.map((t) => (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => setView(t.id)}
               style={{
-                flex: 1,
-                background: "transparent",
-                border: "none",
-                borderBottom: tab === t.id ? "2px solid var(--phosphor)" : "2px solid transparent",
-                color: tab === t.id ? "var(--phosphor)" : "var(--paper-dim)",
-                fontSize: 11,
-                letterSpacing: "0.06em",
-                padding: "10px 0",
+                border: "none", background: view === t.id ? "var(--brand-soft)" : "transparent",
+                color: view === t.id ? "var(--brand-dark)" : "var(--ink2)",
+                fontWeight: 700, fontSize: 14, padding: "9px 18px", borderRadius: 10,
               }}
             >
               {t.label}
             </button>
           ))}
+        </nav>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--amber)", background: "var(--amber-soft)", padding: "5px 12px", borderRadius: 20 }}>TEST MODE</span>
+          <span style={{ fontSize: 12, color: "var(--ink3)", fontWeight: 600 }}>Secured by Razorpay</span>
         </div>
+      </header>
 
-        {tab === "chat" ? <Chat initialProduct={selectedProduct} /> : <Dashboard />}
-
-        <p
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            color: "var(--paper-dim)",
-            textAlign: "center",
-            marginTop: 12,
-            letterSpacing: "0.04em",
-          }}
-        >
-          RAZORPAY AI BUILDER · TRACK 1 — AGENTIC COMMERCE DEMO
-        </p>
-      </div>
+      {/* Views */}
+      <main style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        {view === "shop" && <Shop onAskAI={askAI} />}
+        {view === "chat" && <Chat initialProduct={selectedProduct} onBuy={setBuying} />}
+        {view === "growth" && <Dashboard />}
+      </main>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import fetch from "node-fetch";
 
-// Free tier, no card required: console.groq.com. qwen/qwen3.6-27b supports both
+// Free tier, no card required: console.groq.com. qwen/qwen3.8-27b supports both
 // vision and tool-calling — lets the model see uploaded photos directly instead
 // of routing images around it.
-const MODEL = "qwen/qwen3.6-27b";
+const MODEL = "qwen/qwen3.8-27b";
 const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 // Calls Groq's OpenAI-compatible chat completions endpoint with tool-calling

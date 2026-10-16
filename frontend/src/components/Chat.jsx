@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
+import ProductImage from "./ProductImage";
+import { formatINR } from "./Shop";
 
 let rawApiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
 if (rawApiUrl && !rawApiUrl.startsWith("http://") && !rawApiUrl.startsWith("https://")) {
@@ -6,178 +8,70 @@ if (rawApiUrl && !rawApiUrl.startsWith("http://") && !rawApiUrl.startsWith("http
 }
 const API_URL = rawApiUrl;
 
-function formatRupees(paise) {
-  return `Rs.${(paise / 100).toFixed(2)}`;
-}
-
 function timestamp() {
   return new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 }
 
-// A single catalog match rendered like a line item on a receipt — name on the
-// left, a dotted leader filling the middle, price on the right. This is the
-// signature visual idea: commerce results should look like the thing they are.
-function ReceiptLineItem({ product }) {
+function ProductCard({ product, onBuy }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-end",
-        gap: 8,
-        padding: "10px 0",
-        borderBottom: "1px dashed var(--line)",
-      }}
-    >
-      <img
-        src={product.imageUrl}
-        alt={product.name}
-        style={{
-          width: 40,
-          height: 40,
-          objectFit: "cover",
-          border: "1px solid var(--line)",
-          flexShrink: 0,
-        }}
-      />
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, whiteSpace: "nowrap" }}>
-        {product.name}
-      </span>
-      <span
-        style={{
-          flex: 1,
-          borderBottom: "1px dotted var(--paper-dim)",
-          marginBottom: 5,
-          minWidth: 16,
-        }}
-      />
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--phosphor)" }}>
-        {formatRupees(product.price)}
-      </span>
+    <div style={{ display: "flex", gap: 12, background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: 12, marginBottom: 8, alignItems: "center" }}>
+      <ProductImage product={product} width={64} height={64} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 700, fontSize: 14 }}>{product.name}</div>
+        <div style={{ fontSize: 12, color: "var(--ink2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{product.description}</div>
+        <div style={{ fontWeight: 800, fontSize: 15, marginTop: 2 }}>{formatINR(product.price)}</div>
+      </div>
+      {onBuy && (
+        <button onClick={() => onBuy(product)} style={{ border: "none", background: "var(--brand)", color: "#fff", borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>Buy</button>
+      )}
     </div>
   );
 }
 
-// The moment the agent closes: a stamped payment ticket rather than a plain link.
-function PaymentTicket({ paymentLink }) {
-  return (
-    <div
-      style={{
-        marginTop: 10,
-        border: "1px solid var(--phosphor-dim)",
-        background: "rgba(107,255,160,0.05)",
-        padding: 14,
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <span
-        style={{
-          position: "absolute",
-          top: 8,
-          right: -28,
-          transform: "rotate(35deg)",
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: "0.15em",
-          color: "var(--amber)",
-          border: "1px solid var(--amber)",
-          padding: "2px 30px",
-        }}
-      >
-        READY
-      </span>
-      <p
-        style={{
-          margin: 0,
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          letterSpacing: "0.08em",
-          color: "var(--paper-dim)",
-        }}
-      >
-        PAYMENT LINK · {paymentLink.product}
-      </p>
-      <a
-        href={paymentLink.url}
-        target="_blank"
-        rel="noreferrer"
-        style={{
-          display: "inline-block",
-          marginTop: 10,
-          fontFamily: "var(--font-mono)",
-          fontSize: 13,
-          fontWeight: 600,
-          color: "#04140a",
-          background: "var(--phosphor)",
-          padding: "8px 16px",
-          textDecoration: "none",
-          letterSpacing: "0.04em",
-        }}
-      >
-        PAY NOW →
-      </a>
-    </div>
-  );
-}
-
-function LogLine({ message }) {
+function Message({ message, onBuy }) {
   const isUser = message.role === "user";
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-        <span
+    <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 14, animation: "fadeUp 0.25s ease" }}>
+      <div style={{ maxWidth: "78%", minWidth: 0 }}>
+        <div
           style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.06em",
-            color: isUser ? "var(--paper-dim)" : "var(--phosphor)",
-            flexShrink: 0,
+            background: isUser ? "var(--brand)" : "#fff",
+            color: isUser ? "#fff" : "var(--ink)",
+            border: isUser ? "none" : "1px solid var(--line)",
+            borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+            padding: "11px 15px", fontSize: 14, lineHeight: 1.55,
+            boxShadow: isUser ? "none" : "var(--shadow)",
+            whiteSpace: "pre-wrap",
           }}
         >
-          {isUser ? "YOU  >" : "AGENT>"}
-        </span>
-        <span style={{ fontSize: 14, lineHeight: 1.5 }}>{message.text}</span>
-        <span
-          style={{
-            marginLeft: "auto",
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            color: "var(--paper-dim)",
-            flexShrink: 0,
-          }}
-        >
-          {message.time}
-        </span>
+          {message.text}
+        </div>
+        <div style={{ fontSize: 11, color: "var(--ink3)", marginTop: 4, textAlign: isUser ? "right" : "left" }}>
+          {isUser ? "You" : "AI Assistant"} · {message.time}
+        </div>
+        {message.image && (
+          <img src={`data:image/jpeg;base64,${message.image}`} alt="uploaded" style={{ marginTop: 8, width: 180, maxWidth: "100%", borderRadius: 12, border: "1px solid var(--line)" }} />
+        )}
+        {message.products?.length > 0 && (
+          <div style={{ marginTop: 10 }}>
+            {message.products.map((p) => (
+              <ProductCard key={p._id} product={p} onBuy={onBuy} />
+            ))}
+          </div>
+        )}
+        {message.paymentLink && (
+          <div style={{ marginTop: 10, background: "var(--green-soft)", border: "1px solid #a9dfc2", borderRadius: 12, padding: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--green)", letterSpacing: "0.04em" }}>READY TO CHECK OUT · {message.paymentLink.product}</div>
+            <div style={{ fontWeight: 800, fontSize: 17, margin: "4px 0 10px" }}>{formatINR(message.paymentLink.amount)}</div>
+            <a href={message.paymentLink.url} target="_blank" rel="noreferrer" style={{ display: "inline-block", background: "var(--green)", color: "#fff", borderRadius: 8, padding: "10px 22px", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>Pay now →</a>
+          </div>
+        )}
       </div>
-
-      {message.image && (
-        <img
-          src={`data:image/jpeg;base64,${message.image}`}
-          alt="uploaded"
-          style={{ marginTop: 8, marginLeft: 56, width: 72, border: "1px solid var(--line)" }}
-        />
-      )}
-
-      {message.products?.length > 0 && (
-        <div style={{ marginLeft: 56, marginTop: 6 }}>
-          {message.products.map((p) => (
-            <ReceiptLineItem key={p._id} product={p} />
-          ))}
-        </div>
-      )}
-
-      {message.paymentLink && (
-        <div style={{ marginLeft: 56 }}>
-          <PaymentTicket paymentLink={message.paymentLink} />
-        </div>
-      )}
     </div>
   );
 }
 
-export default function Chat({ initialProduct }) {
+export default function Chat({ initialProduct, onBuy }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [image, setImage] = useState(null);
@@ -213,28 +107,14 @@ export default function Chat({ initialProduct }) {
         }),
       });
       const data = await res.json();
-
-      if (!res.ok) {
-        // Server returns { error: "..." } on failure — surface it instead of
-        // silently rendering a blank reply (data.reply won't exist here).
-        throw new Error(data.error || `Request failed with status ${res.status}`);
-      }
+      if (!res.ok) throw new Error(data.error || `Request failed with status ${res.status}`);
 
       setMessages((prev) => [
         ...prev,
-        {
-          role: "agent",
-          text: data.reply,
-          products: data.products,
-          paymentLink: data.paymentLink,
-          time: timestamp(),
-        },
+        { role: "agent", text: data.reply, products: data.products, paymentLink: data.paymentLink, time: timestamp() },
       ]);
     } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "agent", text: `[error] ${err.message}`, time: timestamp() },
-      ]);
+      setMessages((prev) => [...prev, { role: "agent", text: `Sorry, something went wrong: ${err.message}`, time: timestamp() }]);
     } finally {
       setLoading(false);
     }
@@ -248,100 +128,66 @@ export default function Chat({ initialProduct }) {
     reader.readAsDataURL(file);
   }
 
+  const suggestions = ["Show me denim jackets", "Running shoes under ₹3500", "Gift ideas under ₹1000"];
+
   return (
-    <div
-      style={{
-        background: "var(--panel-solid)",
-        border: "1px solid var(--line)",
-      }}
-    >
-      {/* Log */}
-      <div
-        style={{
-          height: 420,
-          overflowY: "auto",
-          padding: "20px 16px",
-        }}
-      >
+    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", background: "var(--surface)", border: "1px solid var(--line)", borderTop: "none" }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "24px clamp(16px, 6vw, 80px)", background: "#fbfcfe" }}>
         {messages.length === 0 && (
-          <p
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 12,
-              color: "var(--paper-dim)",
-            }}
-          >
-            &gt; awaiting input — describe what you're looking for, or attach a photo
-            <span style={{ animation: "blink 1s step-start infinite" }}>▍</span>
-          </p>
+          <div style={{ maxWidth: 640, margin: "8vh auto 0", textAlign: "center" }}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: "var(--brand-soft)", color: "var(--brand)", fontSize: 26, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>AI</div>
+            <h2 style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 800 }}>Hi, I'm your shopping assistant</h2>
+            <p style={{ color: "var(--ink2)", fontSize: 14, margin: "0 0 18px" }}>Describe what you need — or attach a photo — and I'll find it in our catalog.</p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+              {suggestions.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => { setInput(s); }}
+                  style={{ border: "1px solid var(--line-dark)", background: "#fff", borderRadius: 20, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "var(--ink)" }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
         {messages.map((m, i) => (
-          <LogLine key={i} message={m} />
+          <div key={i} style={{ maxWidth: 860, margin: "0 auto" }}>
+            <Message message={m} onBuy={onBuy} />
+          </div>
         ))}
         {loading && (
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--phosphor-dim)" }}>
-            AGENT&gt; thinking<span style={{ animation: "blink 1s step-start infinite" }}>...</span>
+          <div style={{ maxWidth: 860, margin: "0 auto", display: "flex", gap: 6, padding: "8px 2px" }}>
+            {[0, 1, 2].map((d) => (
+              <span key={d} style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--brand)", animation: "dots 1.2s infinite", animationDelay: `${d * 0.2}s` }} />
+            ))}
           </div>
         )}
         <div ref={logEndRef} />
       </div>
 
-      {/* Input row */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          borderTop: "1px solid var(--line)",
-          padding: "10px 12px",
-        }}
-      >
-        <span style={{ fontFamily: "var(--font-mono)", color: "var(--phosphor)", fontSize: 14 }}>
-          &gt;
-        </span>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-          placeholder={image ? "image attached — add a note or send" : "type a request…"}
-          style={{
-            flex: 1,
-            background: "transparent",
-            border: "none",
-            color: "var(--paper)",
-            fontFamily: "var(--font-mono)",
-            fontSize: 14,
-            padding: "6px 0",
-          }}
-        />
-        <label
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            color: image ? "var(--phosphor)" : "var(--paper-dim)",
-            border: "1px solid var(--line)",
-            padding: "6px 10px",
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {image ? "✓ IMG" : "+ IMG"}
-          <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
-        </label>
-        <button
-          onClick={sendMessage}
-          style={{
-            background: "var(--phosphor)",
-            color: "#04140a",
-            border: "none",
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: "0.04em",
-            padding: "8px 14px",
-          }}
-        >
-          SEND
-        </button>
+      <div style={{ borderTop: "1px solid var(--line)", padding: "12px clamp(16px, 6vw, 80px)", background: "#fff" }}>
+        <div style={{ maxWidth: 860, margin: "0 auto" }}>
+          {image && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "var(--brand-soft)", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, color: "var(--brand-dark)", marginBottom: 8 }}>
+              ✓ Photo attached
+              <button onClick={() => setImage(null)} style={{ border: "none", background: "transparent", color: "inherit", fontSize: 14 }}>×</button>
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <label style={{ border: "1px solid var(--line-dark)", borderRadius: 10, padding: "11px 14px", fontSize: 14, cursor: "pointer", color: "var(--ink2)", fontWeight: 600, whiteSpace: "nowrap" }}>
+              + Photo
+              <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
+            </label>
+            <input
+              value={input} onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              placeholder="Ask for anything… e.g. blue denim jacket"
+              style={{ flex: 1, border: "1px solid var(--line-dark)", borderRadius: 10, padding: "12px 14px", fontSize: 14 }}
+            />
+            <button onClick={sendMessage} disabled={loading} style={{ background: "var(--brand)", color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 700, opacity: loading ? 0.7 : 1 }}>Send</button>
+          </div>
+        </div>
       </div>
     </div>
   );

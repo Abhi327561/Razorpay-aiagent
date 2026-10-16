@@ -65,7 +65,7 @@ npm start
 - [x] MERN scaffold, Razorpay Payment Links integration, terminal-style chat UI
 - [x] CLIP embedding microservice (text + image, shared vector space)
 - [x] 30-product seed catalog with embeddings
-- [x] Real agent tool-use loop on **Groq** (`qwen/qwen3.6-27b` — vision + tool
+- [x] Real agent tool-use loop on **Groq** (`qwen/qwen3.8-27b` — vision + tool
       calling in one model, free tier). Model sees uploaded photos directly and
       calls `search_catalog` itself, alongside `compare_products` and
       `create_payment_link`

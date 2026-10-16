@@ -140,7 +140,7 @@ export async function runAgentTurn({ message, imageBase64, conversationHistory }
   }
 
   if (imageBase64) {
-    // qwen3.6-27b sees the image directly and is expected (per system prompt) to
+    // qwen3.8-27b sees the image directly and is expected (per system prompt) to
     // describe it and call search_catalog itself with a matching text query.
     messages.push({
       role: "user",
