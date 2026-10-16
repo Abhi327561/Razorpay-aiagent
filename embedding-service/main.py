@@ -25,6 +25,7 @@ import torch
 from fastapi import FastAPI, HTTPException
 from PIL import Image
 from pydantic import BaseModel
+# pyrefly: ignore [missing-import]
 from transformers import CLIPModel, CLIPProcessor
 
 # Restrict PyTorch internal threads to prevent high stack allocation on 1-CPU shared containers

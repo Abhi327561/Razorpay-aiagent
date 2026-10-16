@@ -24,20 +24,30 @@ async function seed() {
   console.log(`Cleared existing catalog. Seeding ${products.length} products...`);
 
   let done = 0;
+  let failed = 0;
   for (const p of products) {
     try {
       const embedding = await embedProduct(p);
+      // embedProduct returns [] when the service is down — still insert so
+      // keyword fallback in searchCatalog keeps working.
       await Product.create({ ...p, embedding });
       done++;
       process.stdout.write(`\r  ${done}/${products.length} embedded`);
     } catch (err) {
-      console.error(`\nFailed on "${p.name}": ${err.message}`);
-      console.error("Is the embedding service running? (uvicorn main:app --port 8000)");
-      process.exit(1);
+      failed++;
+      console.error(`\nSkipping "${p.name}": ${err.message}`);
     }
   }
 
-  console.log(`\nDone. ${done} products seeded with embeddings.`);
+  console.log(`\nDone. ${done} products seeded with embeddings.${failed ? ` ${failed} skipped.` : ""}`);
+  if (failed > 0) {
+    console.error("Some products were skipped. Is the embedding service running? (uvicorn main:app --port 8000)");
+  }
+  if (done === 0) {
+    console.error("Nothing seeded — aborting with error.");
+    await mongoose.disconnect();
+    process.exit(1);
+  }
   await mongoose.disconnect();
 }
 

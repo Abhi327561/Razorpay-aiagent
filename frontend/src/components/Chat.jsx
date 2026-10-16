@@ -177,12 +177,18 @@ function LogLine({ message }) {
   );
 }
 
-export default function Chat() {
+export default function Chat({ initialProduct }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const logEndRef = useRef(null);
+
+  useEffect(() => {
+    if (initialProduct) {
+      setInput(`Can you tell me more about ${initialProduct.name}?`);
+    }
+  }, [initialProduct]);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });

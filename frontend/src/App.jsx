@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import Chat from "./components/Chat";
 import Dashboard from "./components/Dashboard";
+import CatalogModal from "./components/CatalogModal";
 
 export default function App() {
   const [tab, setTab] = useState("chat");
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   return (
     <div
@@ -15,6 +18,14 @@ export default function App() {
         padding: "32px 16px",
       }}
     >
+      <CatalogModal 
+        isOpen={isCatalogOpen} 
+        onClose={() => setIsCatalogOpen(false)} 
+        onSelectProduct={(product) => {
+          setSelectedProduct(product);
+          setTab("chat");
+        }} 
+      />
       <div style={{ width: "100%", maxWidth: 620 }}>
         {/* Terminal title bar */}
         <div
@@ -44,9 +55,24 @@ export default function App() {
               flexShrink: 0,
             }}
           />
-          POS://sales-agent — TERMINAL ONLINE
-          <span style={{ marginLeft: "auto", color: "var(--paper-dim)" }}>
-            v0.1 · TEST MODE
+          POS://sales-agent
+          <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              onClick={() => setIsCatalogOpen(true)}
+              style={{
+                background: "var(--phosphor-glow)",
+                border: "1px solid var(--phosphor-dim)",
+                color: "var(--phosphor)",
+                borderRadius: 4,
+                padding: "2px 8px",
+                fontSize: 10,
+                cursor: "pointer",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              📦 VIEW CATALOG
+            </button>
+            <span style={{ color: "var(--paper-dim)" }}>v0.1 · TEST</span>
           </span>
         </div>
 
@@ -82,7 +108,7 @@ export default function App() {
           ))}
         </div>
 
-        {tab === "chat" ? <Chat /> : <Dashboard />}
+        {tab === "chat" ? <Chat initialProduct={selectedProduct} /> : <Dashboard />}
 
         <p
           style={{

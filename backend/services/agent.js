@@ -1,4 +1,4 @@
-import { embedText, searchCatalog } from "./embeddings.js";
+import { embedText, embedImage, searchCatalog } from "./embeddings.js";
 import { createPaymentLink } from "./payment.js";
 import { callGroq } from "./llmClient.js";
 import Product from "../models/Product.js";
@@ -126,6 +126,19 @@ export async function runAgentTurn({ message, imageBase64, conversationHistory }
 
   let collectedProducts = [];
 
+  // Backend-side visual fallback: embed the uploaded photo directly so we still
+  // return visually similar items even if the LLM answers without calling
+  // search_catalog. Best-effort — never throws.
+  let imageFallbackMatches = [];
+  if (imageBase64) {
+    try {
+      const imageEmbedding = await embedImage(imageBase64);
+      imageFallbackMatches = await searchCatalog(imageEmbedding, 5, message || "");
+    } catch (err) {
+      console.error("Image fallback search failed (non-fatal):", err.message);
+    }
+  }
+
   if (imageBase64) {
     // qwen3.6-27b sees the image directly and is expected (per system prompt) to
     // describe it and call search_catalog itself with a matching text query.
@@ -171,8 +184,18 @@ export async function runAgentTurn({ message, imageBase64, conversationHistory }
     }
   }
 
+  // If the model answered without calling search_catalog but we have a
+  // direct visual match, return it so photo queries never come back empty.
+  if (collectedProducts.length === 0 && imageFallbackMatches.length > 0) {
+    collectedProducts = imageFallbackMatches;
+  }
+
   return {
-    reply: finalText || "Sorry, I couldn't come up with a response — try rephrasing?",
+    reply:
+      finalText ||
+      (collectedProducts.length > 0
+        ? "Here are some visually similar items I found for you."
+        : "Sorry, I couldn't come up with a response — try rephrasing?"),
     products: collectedProducts,
     paymentLink,
   };
